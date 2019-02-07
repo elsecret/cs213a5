@@ -1,0 +1,29 @@
+Line 1:
+	Memory reads:
+		i, a, a->x, a->x[i]
+	Memory write:
+		v0 = a->x[i]
+
+Line 2:
+	Memory reads:
+		a->b.y[i]
+	Memory write:
+		v1 = a->b.y[i]
+
+Line 3:
+	Memory reads:
+		a->b.a, a->b.a->x, a->b.a->x[i]
+	Memory write:
+		v2 = a->b.a->x[i]
+
+Line 4:
+	Memory reads:
+		(Nothing)
+	Memory write:
+		a->b.a = a
+
+Line 5:
+	Memory reads:
+		(Nothing)
+	Memory write:
+		v3 = a->b.a->b.y[i]

@@ -1,0 +1,28 @@
+For every argument, a struct integer is created on the heap using malloc by integer_create.
+This is never freed, leading to a memory leak.
+
+The solution, with reference counters (using refcount.h and refcount.c)
+
+First, the problem of why we cannot just call free on the integer in set_empty and stack_pop_and_print:
+  The integers from the set are printed after stack_pop_and_print, so we must not free them in
+  stack_pop_and_print. It is possible with coupling (having stack_pop_and_print call free only if
+  the element does not exist in the set). But the question clearly states not to couple it.
+  (It's also possible without coupling, by creating separate copies for the stack and the set,
+  and freeing the original integers, then freeing the integer copies in stack_pop_and_print and set_empty
+  (also making sure to only make a new copy in the set if the integer isn't already in the set.), but...
+  we are supposed to use reference counting.)
+
+So, reference counting and how it fixes the coupling issue (and also avoids making more copies on the heap):
+
+1. We change the malloc call in integer_create to rc_malloc. This starts the counter at 1.
+   We know that the integer is guaranteed to be referenced by the stack.
+   The integer is conditionally referenced by the set depending on whether the set already contains the element.
+2. We call rc_keep_ref in set_add but make sure not to do it if the set already contains the element.
+3. At this point, a struct integer's counter is 2 if it's the first of its kind, and 1 if that value
+   already exists in the set. This allows set_empty and stack_pop_and_print to both call rc_free_ref.
+   If a struct integer is only in the stack and not the set, its counter is 1 before stack_pop_and_print calls
+   rc_free_ref. This will free it. If a struct integer is in both the set and the stack, then its counter
+   at stack_pop_and_print is 2, and it will decrease to 1 and remain not freed. This means set can print
+   it (it won't be a dangling pointer). And right before set_empty calls rc_free_ref on it, its counter is 1,
+   so it will be freed. This is how every integer will be freed. (The other thing, struct element, was fine
+   the way it was, and doesn't need reference counter)

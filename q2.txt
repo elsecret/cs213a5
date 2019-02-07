@@ -1,0 +1,2 @@
+e gets freed before its static char array is returned. This is a dangling pointer.
+To fix this, we copy its name before freeing e;

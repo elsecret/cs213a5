@@ -1,0 +1,18 @@
+The bug is that the list frees all of the elements before the tree's second traversal and print.
+Since the tree's nodes reference the list's elements, the tree will only have dangling pointers
+because of this.
+
+To fix this, we use reference counting. The only thing we need to apply reference counting to
+is struct element.
+1. We replace malloc in list_add_element with rc_malloc.
+2. In list_delete_element, we do element_free_ref rather than free(e->value) and free(e).
+3. In element_free_ref, we need to check the reference counter by doing getting it at ((void*) e)-8
+   (where e is the input parameter, a struct element pointer).
+   If the reference counter is 1, it means a free is imminent. We need to free the char array, or
+   else it will be leaked. We just call free on e->value to do so.
+   In either case, rc_free_ref is called on e. It will free it or decrement its counter as appropriate.
+4. The final touch is simply adding a call to element_free_ref (which is just a wrapper function around
+   rc_free_ref) to tree_insert_node, right before the return statement. (Optionally it can be added right
+   before the final return statement in tree_insert_node_helper.)
+5. Finally, we must change free(n->e->value) and free(n->e) in tree_delete_helper to element_free_ref,
+   because the address is not the same, so free won't work.
